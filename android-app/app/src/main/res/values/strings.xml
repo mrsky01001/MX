@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MX</string>
+    <string name="mock_active">MX Mock Active</string>
+    <string name="mock_inactive">MX Mock Inactive</string>
+    <string name="notification_channel_name">MX Mock Location</string>
+    <string name="notification_channel_desc">Shows when mock location is active</string>
+</resources>
