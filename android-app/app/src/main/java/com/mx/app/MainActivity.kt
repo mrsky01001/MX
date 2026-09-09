@@ -10,15 +10,16 @@ import androidx.core.content.ContextCompat
 import com.mx.app.service.MockLocationService
 import com.mx.app.ui.screens.HomeScreen
 import com.mx.app.ui.screens.PermissionScreen
+import com.mx.app.ui.screens.isPermissionsDone
 import com.mx.app.ui.theme.MXTheme
 import com.mx.app.update.UpdateChecker
 import com.mx.app.update.UpdateDownloader
 import com.mx.app.update.UpdateInfo
 import com.mx.app.update.UpdateAvailableDialog
 import com.mx.app.update.UpdateProgressDialog
-import com.mx.app.update.UpdateBadge
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -34,7 +35,11 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MXTheme {
-                var showPermissions by remember { mutableStateOf(true) }
+                val context = this@MainActivity
+
+                var showPermissions by remember {
+                    mutableStateOf(!isPermissionsDone(context))
+                }
                 var locationName by remember { mutableStateOf("") }
                 var locationLat by remember { mutableDoubleStateOf(0.0) }
                 var locationLng by remember { mutableDoubleStateOf(0.0) }
@@ -46,8 +51,6 @@ class MainActivity : ComponentActivity() {
                 var showDownloadProgress by remember { mutableStateOf(false) }
                 var downloadProgress by remember { mutableIntStateOf(0) }
                 var downloadComplete by remember { mutableStateOf(false) }
-                var showError by remember { mutableStateOf(false) }
-                var errorMessage by remember { mutableStateOf("") }
 
                 val scope = rememberCoroutineScope()
 
@@ -60,8 +63,12 @@ class MainActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(Unit) {
-                    val result = updateChecker.checkForUpdate()
-                    updateInfo = result
+                    try {
+                        val result = withTimeoutOrNull(5000L) {
+                            updateChecker.checkForUpdate()
+                        }
+                        updateInfo = result
+                    } catch (_: Exception) { }
                 }
 
                 if (showPermissions) {
@@ -119,8 +126,6 @@ class MainActivity : ComponentActivity() {
                                 if (result != null) {
                                     downloadComplete = true
                                 } else {
-                                    showError = true
-                                    errorMessage = "Download failed. Please try again."
                                     showDownloadProgress = false
                                 }
                             }
@@ -143,17 +148,6 @@ class MainActivity : ComponentActivity() {
                                 updateDownloader.installApk(apkFile)
                             }
                         }
-                    )
-                }
-
-                if (showError) {
-                    UpdateAvailableDialog(
-                        updateInfo = updateInfo!!,
-                        onDismiss = {
-                            showError = false
-                            errorMessage = ""
-                        },
-                        onUpdate = { }
                     )
                 }
             }

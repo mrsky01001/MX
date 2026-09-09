@@ -23,8 +23,8 @@ data class GitHubAsset(
 class UpdateChecker(private val context: Context) {
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.SECONDS)
         .build()
 
     private val gson = Gson()
@@ -70,17 +70,18 @@ class UpdateChecker(private val context: Context) {
     }
 
     suspend fun checkForUpdate(): UpdateInfo? = withContext(Dispatchers.IO) {
+        var response: okhttp3.Response? = null
         try {
             val request = Request.Builder()
                 .url("https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest")
                 .header("Accept", "application/vnd.github.v3+json")
                 .build()
 
-            val response = client.newCall(request).execute()
+            response = client.newCall(request).execute()
+            val body = response.body?.string() ?: return@withContext null
 
             if (response.isSuccessful) {
-                val body = response.body?.string() ?: return@withContext null
-                val release = gson.fromJson(body, GitHubRelease::class.java)
+                val release = gson.fromJson(body, GitHubRelease::class.java) ?: return@withContext null
 
                 val remoteVersionCode = extractVersionFromTag(release.tagName)
                 val currentVersionCode = getCurrentVersionCode()
@@ -102,6 +103,8 @@ class UpdateChecker(private val context: Context) {
             }
         } catch (e: Exception) {
             null
+        } finally {
+            response?.close()
         }
     }
 }
