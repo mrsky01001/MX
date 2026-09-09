@@ -381,7 +381,7 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "• MX runs as foreground service\n• Stop MX from app or notification bar\n• Android only — not supported on iOS",
+                    text = "• MX runs as foreground service\n• Stop MX from app or notification bar\n• Android only — not available on iOS, Windows or Mac",
                     fontSize = 12.sp,
                     color = Color(0xFF888888),
                     lineHeight = 20.sp
