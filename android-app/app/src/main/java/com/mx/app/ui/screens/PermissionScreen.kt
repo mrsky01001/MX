@@ -101,7 +101,7 @@ private fun MockLocationStep(onContinue: () -> Unit) {
         buttonText = "Open Developer Options",
         showContinue = true,
         onClick = {
-            val intent = Intent(Settings.APPLICATION_DEVELOPMENT_SETTINGS)
+            val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
             context.startActivity(intent)
         },
         onContinue = onContinue
