@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mx.app.ui.theme.*
+import com.mx.app.update.UpdateInfo
+import com.mx.app.update.UpdateBadge
 import java.util.Locale
 
 @Composable
@@ -28,8 +30,10 @@ fun HomeScreen(
     locationLng: Double,
     isRunning: Boolean,
     showStoppedDialog: Boolean = false,
+    updateInfo: UpdateInfo? = null,
     onStoppedDialogDismiss: () -> Unit = {},
     onLocationSelected: (String, Double, Double) -> Unit,
+    onUpdateClick: () -> Unit = {},
     onStart: () -> Unit,
     onStop: () -> Unit,
     onOpenMaps: (Double, Double, String) -> Unit
@@ -60,18 +64,27 @@ fun HomeScreen(
                 color = Color.White,
                 letterSpacing = 4.sp
             )
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (isRunning) Color(0x331DB954) else Color(0xFF1A1A1A))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = if (isRunning) "● Active" else "Inactive",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isRunning) Color(0xFF1DB954) else Color(0xFF888888)
+                UpdateBadge(
+                    updateInfo = updateInfo,
+                    onClick = onUpdateClick
                 )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (isRunning) Color(0x331DB954) else Color(0xFF1A1A1A))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = if (isRunning) "● Active" else "Inactive",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isRunning) Color(0xFF1DB954) else Color(0xFF888888)
+                    )
+                }
             }
         }
 
