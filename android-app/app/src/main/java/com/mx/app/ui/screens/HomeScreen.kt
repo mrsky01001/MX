@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,6 +45,7 @@ fun HomeScreen(
 ) {
     var showLocationDialog by remember { mutableStateOf(false) }
     var showStoppedDialogState by remember { mutableStateOf(showStoppedDialog) }
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(showStoppedDialog) {
         showStoppedDialogState = showStoppedDialog
@@ -86,6 +89,20 @@ fun HomeScreen(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (isRunning) Color(0xFF1DB954) else Color(0xFF888888)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1A1A1A))
+                        .clickable { showAboutDialog = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "ℹ",
+                        fontSize = 14.sp,
+                        color = Color(0xFF888888)
                     )
                 }
             }
@@ -284,6 +301,113 @@ fun HomeScreen(
             dismissButton = {}
         )
     }
+
+    if (showAboutDialog) {
+        AboutDialog(onDismiss = { showAboutDialog = false })
+    }
+}
+
+@Composable
+fun AboutDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1A1A1A),
+        titleContentColor = Color.White,
+        textContentColor = Color.White,
+        title = {
+            Text(
+                text = "About MX",
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "MX sends fake GPS location on WhatsApp instead of your real location.",
+                    fontSize = 14.sp,
+                    color = Color(0xFFBBBBBB),
+                    lineHeight = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "FIRST TIME SETUP (Required)",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1DB954),
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "1. Allow Location permission\n2. Allow Notification (optional)\n3. Open Developer Options\n4. Enable \"Mock location app\"\n5. Select \"MX\" from the list",
+                    fontSize = 13.sp,
+                    color = Color(0xFFBBBBBB),
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Without this, MX will NOT work.",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFF6B6B)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "HOW TO USE",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1DB954),
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "1. Tap \"Tap to Select Location\"\n2. Enter place name or coordinates\n3. Tap \"Confirm\"\n4. Tap \"START\" to begin\n5. Open WhatsApp → Share Live Location\n6. Tap \"STOP\" when done",
+                    fontSize = 13.sp,
+                    color = Color(0xFFBBBBBB),
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                HorizontalDivider(color = Color(0xFF333333))
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "• MX runs as foreground service\n• Stop MX from app or notification bar\n• Android only — not supported on iOS",
+                    fontSize = 12.sp,
+                    color = Color(0xFF888888),
+                    lineHeight = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "v1.1",
+                    fontSize = 11.sp,
+                    color = Color(0xFF555555),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        confirmButton = {}
+    )
 }
 
 @Composable
