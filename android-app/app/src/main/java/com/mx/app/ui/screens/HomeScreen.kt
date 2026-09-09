@@ -334,9 +334,14 @@ fun LocationInputDialog(
     var latText by remember { mutableStateOf(if (initialLat != 0.0) initialLat.toString() else "") }
     var lngText by remember { mutableStateOf(if (initialLng != 0.0) initialLng.toString() else "") }
     var linkText by remember { mutableStateOf("") }
-    var showPreview by remember { mutableStateOf(false) }
     var parsedLat by remember { mutableDoubleStateOf(0.0) }
     var parsedLng by remember { mutableDoubleStateOf(0.0) }
+
+    fun isValidCoordinates(): Boolean {
+        val lat = latText.toDoubleOrNull()
+        val lng = lngText.toDoubleOrNull()
+        return lat != null && lng != null && lat in -90.0..90.0 && lng in -180.0..180.0
+    }
 
     fun updatePreview() {
         val lat = latText.toDoubleOrNull()
@@ -344,10 +349,33 @@ fun LocationInputDialog(
         if (lat != null && lng != null && lat in -90.0..90.0 && lng in -180.0..180.0) {
             parsedLat = lat
             parsedLng = lng
-            showPreview = true
-        } else {
-            showPreview = false
         }
+    }
+
+    fun parseGoogleMapsLink(link: String): Boolean {
+        val patterns = listOf(
+            Regex("""@(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
+            Regex("""q=(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
+            Regex("""\?q=(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
+            Regex("""/place/[^@]*@(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
+            Regex("""maps\?.*?ll=(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
+            Regex("""center=(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
+            Regex("""(-?\d+\.\d+),\s*(-?\d+\.\d+)""")
+        )
+        for (pattern in patterns) {
+            val match = pattern.find(link)
+            if (match != null) {
+                val lat = match.groupValues[1]
+                val lng = match.groupValues[2]
+                if (lat.toDoubleOrNull() != null && lng.toDoubleOrNull() != null) {
+                    latText = lat
+                    lngText = lng
+                    updatePreview()
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     AlertDialog(
@@ -361,109 +389,21 @@ fun LocationInputDialog(
         text = {
             Column {
                 Text(
-                    text = "Enter location details",
+                    text = "Enter location or paste Google Maps link",
                     fontSize = 13.sp,
                     color = Color(0xFF888888),
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Place name
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Place Name / Street (optional)") },
-                    placeholder = { Text("e.g. Connaught Place, Delhi") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF1DB954),
-                        unfocusedBorderColor = Color(0xFF333333),
-                        focusedLabelColor = Color(0xFF1DB954),
-                        unfocusedLabelColor = Color(0xFF888888),
-                        cursorColor = Color(0xFF1DB954)
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Latitude
-                OutlinedTextField(
-                    value = latText,
-                    onValueChange = {
-                        latText = it
-                        updatePreview()
-                    },
-                    label = { Text("Latitude") },
-                    placeholder = { Text("e.g. 28.6315") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF1DB954),
-                        unfocusedBorderColor = Color(0xFF333333),
-                        focusedLabelColor = Color(0xFF1DB954),
-                        unfocusedLabelColor = Color(0xFF888888),
-                        cursorColor = Color(0xFF1DB954)
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Longitude
-                OutlinedTextField(
-                    value = lngText,
-                    onValueChange = {
-                        lngText = it
-                        updatePreview()
-                    },
-                    label = { Text("Longitude") },
-                    placeholder = { Text("e.g. 77.2167") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF1DB954),
-                        unfocusedBorderColor = Color(0xFF333333),
-                        focusedLabelColor = Color(0xFF1DB954),
-                        unfocusedLabelColor = Color(0xFF888888),
-                        cursorColor = Color(0xFF1DB954)
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "— OR paste Google Maps link —",
-                    fontSize = 12.sp,
-                    color = Color(0xFF555555),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 OutlinedTextField(
                     value = linkText,
                     onValueChange = { link ->
                         linkText = link
-                        // Extract coordinates from link
-                        val match = Regex("""@(-?\d+\.?\d*),(-?\d+\.?\d*)""").find(link)
-                            ?: Regex("""q=(-?\d+\.?\d*),(-?\d+\.?\d*)""").find(link)
-                            ?: Regex("""\?q=(-?\d+\.?\d*),(-?\d+\.?\d*)""").find(link)
-                        if (match != null) {
-                            latText = match.groupValues[1]
-                            lngText = match.groupValues[2]
-                            updatePreview()
+                        if (link.isNotBlank()) {
+                            parseGoogleMapsLink(link)
                         }
                     },
-                    label = { Text("Google Maps link") },
+                    label = { Text("Paste Google Maps link") },
                     placeholder = { Text("https://maps.google.com/...") },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -479,8 +419,89 @@ fun LocationInputDialog(
                     singleLine = true
                 )
 
-                // Preview
-                if (showPreview) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "— OR enter manually —",
+                    fontSize = 11.sp,
+                    color = Color(0xFF444444),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Place Name (optional)") },
+                    placeholder = { Text("e.g. Connaught Place, Delhi") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF1DB954),
+                        unfocusedBorderColor = Color(0xFF333333),
+                        focusedLabelColor = Color(0xFF1DB954),
+                        unfocusedLabelColor = Color(0xFF888888),
+                        cursorColor = Color(0xFF1DB954)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedTextField(
+                        value = latText,
+                        onValueChange = {
+                            latText = it
+                            updatePreview()
+                        },
+                        label = { Text("Latitude") },
+                        placeholder = { Text("28.6315") },
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF1DB954),
+                            unfocusedBorderColor = Color(0xFF333333),
+                            focusedLabelColor = Color(0xFF1DB954),
+                            unfocusedLabelColor = Color(0xFF888888),
+                            cursorColor = Color(0xFF1DB954)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+
+                    OutlinedTextField(
+                        value = lngText,
+                        onValueChange = {
+                            lngText = it
+                            updatePreview()
+                        },
+                        label = { Text("Longitude") },
+                        placeholder = { Text("77.2167") },
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF1DB954),
+                            unfocusedBorderColor = Color(0xFF333333),
+                            focusedLabelColor = Color(0xFF1DB954),
+                            unfocusedLabelColor = Color(0xFF888888),
+                            cursorColor = Color(0xFF1DB954)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                }
+
+                if (isValidCoordinates()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Box(
                         modifier = Modifier
@@ -488,26 +509,29 @@ fun LocationInputDialog(
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color(0xFF111111))
                             .border(1.dp, Color(0xFF333333), RoundedCornerShape(12.dp))
-                            .clickable { onOpenMaps(parsedLat, parsedLng, name) }
+                            .clickable {
+                                updatePreview()
+                                onOpenMaps(parsedLat, parsedLng, name)
+                            }
                             .padding(14.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "🗺", fontSize = 24.sp)
+                            Text(text = "🗺", fontSize = 22.sp)
                             Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = if (name.isNotBlank()) "$name (${String.format("%.4f", parsedLat)}, ${String.format("%.4f", parsedLng)})" else String.format("%.6f, %.6f", parsedLat, parsedLng),
-                                    fontSize = 13.sp,
+                                    text = if (name.isNotBlank()) "$name (${String.format("%.4f", parsedLat)}, ${String.format("%.4f", parsedLng)})" else String.format("%.6f, %.6f", latText.toDouble(), lngText.toDouble()),
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color(0xFF1DB954)
                                 )
                                 Text(
                                     text = "Tap to verify in Google Maps",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF888888)
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF666666)
                                 )
                             }
-                            Text(text = "→", fontSize = 20.sp, color = Color(0xFF1DB954))
+                            Text(text = "→", fontSize = 18.sp, color = Color(0xFF1DB954))
                         }
                     }
                 }
@@ -515,12 +539,18 @@ fun LocationInputDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(name, parsedLat, parsedLng) },
-                enabled = showPreview,
+                onClick = {
+                    updatePreview()
+                    onConfirm(name, parsedLat, parsedLng)
+                },
+                enabled = isValidCoordinates(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (showPreview) Color(0xFF1DB954) else Color(0xFF333333),
-                    contentColor = if (showPreview) Color.Black else Color(0xFF666666)
+                    containerColor = if (isValidCoordinates()) Color(0xFF1DB954) else Color(0xFF222222),
+                    contentColor = if (isValidCoordinates()) Color.Black else Color(0xFF555555)
                 ),
+                modifier = Modifier
+                    .defaultMinSize(minWidth = 120.dp)
+                    .height(48.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(text = "Confirm", fontWeight = FontWeight.Bold)
@@ -530,6 +560,7 @@ fun LocationInputDialog(
             OutlinedButton(
                 onClick = onDismiss,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                modifier = Modifier.height(48.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(text = "Cancel")

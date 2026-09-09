@@ -29,23 +29,97 @@ fun PermissionScreen(
     onAllGranted: () -> Unit
 ) {
     val context = LocalContext.current
-    var permLocation by remember { mutableStateOf(false) }
-    var permNotification by remember { mutableStateOf(false) }
+    var step by remember { mutableIntStateOf(1) }
 
-    val allGranted = permLocation && permNotification
+    when (step) {
+        1 -> LocationPermissionStep(
+            onGranted = { step = 2 }
+        )
+        2 -> NotificationPermissionStep(
+            onGranted = { step = 3 }
+        )
+        3 -> MockLocationStep(
+            onContinue = { onAllGranted() }
+        )
+    }
+}
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        permLocation = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permNotification = permissions[Manifest.permission.POST_NOTIFICATIONS] == true
-        } else {
-            permNotification = true
-        }
+@Composable
+private fun LocationPermissionStep(onGranted: () -> Unit) {
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) onGranted()
     }
 
+    PermissionUI(
+        step = 1,
+        of = 3,
+        icon = "📍",
+        title = "Location Access",
+        subtitle = "MX needs your location to mock GPS",
+        buttonText = "Allow Location",
+        onClick = { launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
+    )
+}
+
+@Composable
+private fun NotificationPermissionStep(onGranted: () -> Unit) {
+    val context = LocalContext.current
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val launcher = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) onGranted()
+        }
+
+        PermissionUI(
+            step = 2,
+            of = 3,
+            icon = "🔔",
+            title = "Notifications",
+            subtitle = "Show mock location active status",
+            buttonText = "Allow Notifications",
+            onClick = { launcher.launch(Manifest.permission.POST_NOTIFICATIONS) }
+        )
+    } else {
+        LaunchedEffect(Unit) { onGranted() }
+    }
+}
+
+@Composable
+private fun MockLocationStep(onContinue: () -> Unit) {
+    val context = LocalContext.current
+
+    PermissionUI(
+        step = 3,
+        of = 3,
+        icon = "⚙",
+        title = "Mock Location",
+        subtitle = "Select MX as mock location app in Developer Options",
+        buttonText = "Open Developer Options",
+        showContinue = true,
+        onClick = {
+            val intent = Intent(Settings.APPLICATION_DEVELOPMENT_SETTINGS)
+            context.startActivity(intent)
+        },
+        onContinue = onContinue
+    )
+}
+
+@Composable
+private fun PermissionUI(
+    step: Int,
+    of: Int,
+    icon: String,
+    title: String,
+    subtitle: String,
+    buttonText: String,
+    showContinue: Boolean = false,
+    onClick: () -> Unit,
+    onContinue: (() -> Unit)? = null
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,84 +127,71 @@ fun PermissionScreen(
             .padding(30.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(60.dp))
+        Spacer(modifier = Modifier.height(80.dp))
 
         Text(
             text = "MX",
-            fontSize = 80.sp,
+            fontSize = 72.sp,
             fontWeight = FontWeight.Black,
             color = Color.White,
-            letterSpacing = 16.sp
+            letterSpacing = 14.sp
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = "Fake Live Location for WhatsApp",
+            fontSize = 12.sp,
+            color = Color(0xFF666666)
+        )
+
+        Spacer(modifier = Modifier.height(60.dp))
+
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF111111)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = icon, fontSize = 36.sp)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = title,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = subtitle,
             fontSize = 13.sp,
-            color = Color(0xFF888888)
+            color = Color(0xFF888888),
+            textAlign = TextAlign.Center,
+            lineHeight = 20.sp
         )
 
-        Spacer(modifier = Modifier.height(50.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        PermissionItem(
-            icon = "📍",
-            title = "Location Access",
-            subtitle = "Required to mock GPS",
-            granted = permLocation,
-            onClick = {
-                val perms = mutableListOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    perms.add(Manifest.permission.POST_NOTIFICATIONS)
-                }
-                permissionLauncher.launch(perms.toTypedArray())
-            }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        PermissionItem(
-            icon = "🔔",
-            title = "Notifications",
-            subtitle = "Show mock status",
-            granted = permNotification,
-            onClick = {
-                val perms = mutableListOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    perms.add(Manifest.permission.POST_NOTIFICATIONS)
-                }
-                permissionLauncher.launch(perms.toTypedArray())
-            }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        PermissionItem(
-            icon = "⚙",
-            title = "Mock Location",
-            subtitle = "Tap to open Developer Options",
-            granted = false,
-            showArrow = true,
-            onClick = {
-                val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-                context.startActivity(intent)
-            }
+        Text(
+            text = "Step $step of $of",
+            fontSize = 11.sp,
+            color = Color(0xFF444444),
+            letterSpacing = 2.sp
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = { onAllGranted() },
-            enabled = allGranted,
+            onClick = onClick,
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (allGranted) Color(0xFF1DB954) else Color(0xFF222222),
-                contentColor = if (allGranted) Color.Black else Color(0xFF555555)
+                containerColor = Color(0xFF1DB954),
+                contentColor = Color.Black
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -138,94 +199,34 @@ fun PermissionScreen(
             shape = RoundedCornerShape(14.dp)
         ) {
             Text(
-                text = "Continue",
+                text = buttonText,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        if (showContinue) {
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = "Allow Location & Notifications, then enable\nMock Location in Developer Options.",
-            fontSize = 11.sp,
-            color = Color(0xFF555555),
-            textAlign = TextAlign.Center,
-            lineHeight = 16.sp
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-    }
-}
-
-@Composable
-private fun PermissionItem(
-    icon: String,
-    title: String,
-    subtitle: String,
-    granted: Boolean,
-    showArrow: Boolean = false,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF111111))
-            .clickable { onClick() }
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF1A1A1A)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = icon, fontSize = 18.sp)
-        }
-
-        Spacer(modifier = Modifier.width(14.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White
-            )
-            Text(
-                text = subtitle,
-                fontSize = 11.sp,
-                color = Color(0xFF666666),
-                modifier = Modifier.padding(top = 2.dp)
-            )
-        }
-
-        if (showArrow) {
-            Text(
-                text = "›",
-                fontSize = 24.sp,
-                color = Color(0xFF666666)
-            )
-        } else {
-            Box(
+            Button(
+                onClick = { onContinue?.invoke() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF222222),
+                    contentColor = Color.White
+                ),
                 modifier = Modifier
-                    .size(26.dp)
-                    .clip(CircleShape)
-                    .background(if (granted) Color(0xFF1DB954) else Color(0xFF333333)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(14.dp)
             ) {
-                if (granted) {
-                    Text(
-                        text = "✓",
-                        fontSize = 12.sp,
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Text(
+                    text = "Continue",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
