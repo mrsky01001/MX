@@ -49,10 +49,12 @@ class UpdateChecker(private val context: Context) {
         }
     }
 
-    private fun getMajorVersionFromTag(tag: String): Int {
+    private fun getVersionNumberFromTag(tag: String): Int {
         val cleaned = tag.trim().removePrefix("v").removePrefix("V")
         val parts = cleaned.split(".")
-        return parts[0].toIntOrNull() ?: 1
+        val major = parts[0].toIntOrNull() ?: 1
+        val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        return major * 100 + minor
     }
 
     suspend fun checkForUpdate(): UpdateInfo? = withContext(Dispatchers.IO) {
@@ -69,15 +71,15 @@ class UpdateChecker(private val context: Context) {
             if (response.isSuccessful) {
                 val release = gson.fromJson(body, GitHubRelease::class.java) ?: return@withContext null
 
-                val remoteMajorVersion = getMajorVersionFromTag(release.tagName)
+                val remoteVersionNumber = getVersionNumberFromTag(release.tagName)
                 val currentVersionCode = getCurrentVersionCode()
 
                 val apkAsset = release.assets.find { it.name == APK_FILE_NAME }
 
-                if (remoteMajorVersion > currentVersionCode && apkAsset != null) {
+                if (remoteVersionNumber > currentVersionCode && apkAsset != null) {
                     UpdateInfo(
                         versionName = release.tagName,
-                        versionCode = remoteMajorVersion,
+                        versionCode = remoteVersionNumber,
                         downloadUrl = apkAsset.downloadUrl,
                         currentVersionCode = currentVersionCode
                     )
