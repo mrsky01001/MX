@@ -21,8 +21,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mx.app.ui.theme.*
-import com.mx.app.update.UpdateInfo
-import com.mx.app.update.UpdateBadge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,10 +33,8 @@ fun HomeScreen(
     locationLng: Double,
     isRunning: Boolean,
     showStoppedDialog: Boolean = false,
-    updateInfo: UpdateInfo? = null,
     onStoppedDialogDismiss: () -> Unit = {},
     onLocationSelected: (String, Double, Double) -> Unit,
-    onUpdateClick: () -> Unit = {},
     onStart: () -> Unit,
     onStop: () -> Unit,
     onOpenMaps: (Double, Double, String) -> Unit
@@ -74,10 +70,6 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                UpdateBadge(
-                    updateInfo = updateInfo,
-                    onClick = onUpdateClick
-                )
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))

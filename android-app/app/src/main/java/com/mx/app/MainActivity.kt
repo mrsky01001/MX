@@ -12,26 +12,13 @@ import com.mx.app.ui.screens.HomeScreen
 import com.mx.app.ui.screens.PermissionScreen
 import com.mx.app.ui.screens.isPermissionsDone
 import com.mx.app.ui.theme.MXTheme
-import com.mx.app.update.UpdateChecker
-import com.mx.app.update.UpdateDownloader
-import com.mx.app.update.UpdateInfo
-import com.mx.app.update.UpdateAvailableDialog
-import com.mx.app.update.UpdateProgressDialog
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private lateinit var updateChecker: UpdateChecker
-    private lateinit var updateDownloader: UpdateDownloader
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        updateChecker = UpdateChecker(this)
-        updateDownloader = UpdateDownloader(this)
 
         setContent {
             MXTheme {
@@ -46,29 +33,12 @@ class MainActivity : ComponentActivity() {
                 var isRunning by remember { mutableStateOf(false) }
                 var showStoppedDialog by remember { mutableStateOf(false) }
 
-                var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
-                var showUpdateDialog by remember { mutableStateOf(false) }
-                var showDownloadProgress by remember { mutableStateOf(false) }
-                var downloadProgress by remember { mutableIntStateOf(0) }
-                var downloadComplete by remember { mutableStateOf(false) }
-
-                val scope = rememberCoroutineScope()
-
                 LaunchedEffect(intent) {
                     if (intent?.getBooleanExtra("show_stopped_dialog", false) == true) {
                         showStoppedDialog = true
                         isRunning = false
                         intent.removeExtra("show_stopped_dialog")
                     }
-                }
-
-                LaunchedEffect(Unit) {
-                    try {
-                        val result = withTimeoutOrNull(5000L) {
-                            updateChecker.checkForUpdate()
-                        }
-                        updateInfo = result
-                    } catch (_: Exception) { }
                 }
 
                 if (showPermissions) {
@@ -82,14 +52,12 @@ class MainActivity : ComponentActivity() {
                         locationLng = locationLng,
                         isRunning = isRunning,
                         showStoppedDialog = showStoppedDialog,
-                        updateInfo = updateInfo,
                         onStoppedDialogDismiss = { showStoppedDialog = false },
                         onLocationSelected = { name, lat, lng ->
                             locationName = name
                             locationLat = lat
                             locationLng = lng
                         },
-                        onUpdateClick = { showUpdateDialog = true },
                         onStart = {
                             startMockService(locationName, locationLat, locationLng)
                             isRunning = true
@@ -102,51 +70,6 @@ class MainActivity : ComponentActivity() {
                             val query = if (name.isNotBlank()) "$name $lat,$lng" else "$lat,$lng"
                             val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps?q=${Uri.encode(query)}"))
                             startActivity(mapIntent)
-                        }
-                    )
-                }
-
-                if (showUpdateDialog && updateInfo != null) {
-                    UpdateAvailableDialog(
-                        updateInfo = updateInfo!!,
-                        onDismiss = { showUpdateDialog = false },
-                        onUpdate = {
-                            showUpdateDialog = false
-                            showDownloadProgress = true
-                            downloadProgress = 0
-                            downloadComplete = false
-
-                            scope.launch {
-                                val result = updateDownloader.downloadApk(
-                                    url = updateInfo!!.downloadUrl
-                                ) { progress ->
-                                    downloadProgress = progress
-                                }
-
-                                if (result != null) {
-                                    downloadComplete = true
-                                } else {
-                                    showDownloadProgress = false
-                                }
-                            }
-                        }
-                    )
-                }
-
-                if (showDownloadProgress) {
-                    UpdateProgressDialog(
-                        progress = downloadProgress,
-                        isComplete = downloadComplete,
-                        onDismiss = {
-                            showDownloadProgress = false
-                            downloadComplete = false
-                        },
-                        onInstall = {
-                            showDownloadProgress = false
-                            val apkFile = updateDownloader.getDownloadedApkFile()
-                            if (apkFile != null) {
-                                updateDownloader.installApk(apkFile)
-                            }
                         }
                     )
                 }
