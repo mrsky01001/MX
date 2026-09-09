@@ -1,11 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-    <!-- Left half pin -->
-    <path d="M245,460 L130,260 C130,155 245,145 245,145 Z" fill="#000000"/>
-    <!-- Right half pin - shifted up -->
-    <path d="M267,450 L267,165 C267,155 382,155 382,260 Z" fill="#000"/>
-    <!-- Split line -->
-    <line x1="256" y1="145" x2="256" y2="460" stroke="#fff" stroke-width="12"/>
-    <!-- Swap arrows -->
-    <path d="M210,260 L170,260 L170,210" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M302,260 L342,260 L342,310" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Left half pin (lower) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,85 L28,52 C28,36 42,33 42,33 Z"/>
+
+    <!-- Right half pin (shifted up) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M66,78 L66,38 C66,35 80,35 80,52 Z"/>
+
+    <!-- Left arrow (white on black bg) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M44,55 L35,55 L35,44"/>
+
+    <!-- Right arrow (white on black bg) -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M64,55 L73,55 L73,66"/>
+
+</vector>

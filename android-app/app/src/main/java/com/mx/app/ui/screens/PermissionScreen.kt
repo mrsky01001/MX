@@ -3,7 +3,6 @@ package com.mx.app.ui.screens
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,9 +31,8 @@ fun PermissionScreen(
     val context = LocalContext.current
     var permLocation by remember { mutableStateOf(false) }
     var permNotification by remember { mutableStateOf(false) }
-    var permMock by remember { mutableStateOf(context.isMockLocationEnabled()) }
 
-    val allGranted = permLocation && permNotification && permMock
+    val allGranted = permLocation && permNotification
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -46,7 +44,6 @@ fun PermissionScreen(
         } else {
             permNotification = true
         }
-        permMock = context.isMockLocationEnabled()
     }
 
     Column(
@@ -76,7 +73,6 @@ fun PermissionScreen(
 
         Spacer(modifier = Modifier.height(50.dp))
 
-        // Permission items
         PermissionItem(
             icon = "📍",
             title = "Location Access",
@@ -118,14 +114,12 @@ fun PermissionScreen(
         PermissionItem(
             icon = "⚙",
             title = "Mock Location",
-            subtitle = "Developer Options",
-            granted = permMock,
+            subtitle = "Tap to open Developer Options",
+            granted = false,
+            showArrow = true,
             onClick = {
-                permMock = context.isMockLocationEnabled()
-                if (!permMock) {
-                    val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-                    context.startActivity(intent)
-                }
+                val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+                context.startActivity(intent)
             }
         )
 
@@ -153,7 +147,7 @@ fun PermissionScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "All permissions are required.\nYou can disable them in phone Settings later.",
+            text = "Allow Location & Notifications, then enable\nMock Location in Developer Options.",
             fontSize = 11.sp,
             color = Color(0xFF555555),
             textAlign = TextAlign.Center,
@@ -170,6 +164,7 @@ private fun PermissionItem(
     title: String,
     subtitle: String,
     granted: Boolean,
+    showArrow: Boolean = false,
     onClick: () -> Unit
 ) {
     Row(
@@ -208,29 +203,29 @@ private fun PermissionItem(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .size(26.dp)
-                .clip(CircleShape)
-                .background(if (granted) Color(0xFF1DB954) else Color(0xFF333333)),
-            contentAlignment = Alignment.Center
-        ) {
-            if (granted) {
-                Text(
-                    text = "✓",
-                    fontSize = 12.sp,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold
-                )
+        if (showArrow) {
+            Text(
+                text = "›",
+                fontSize = 24.sp,
+                color = Color(0xFF666666)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .background(if (granted) Color(0xFF1DB954) else Color(0xFF333333)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (granted) {
+                    Text(
+                        text = "✓",
+                        fontSize = 12.sp,
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
-    }
-}
-
-private fun Context.isMockLocationEnabled(): Boolean {
-    return try {
-        Settings.Secure.getInt(contentResolver, Settings.Secure.ALLOW_MOCK_LOCATION) != 0
-    } catch (e: Exception) {
-        false
     }
 }
