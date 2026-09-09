@@ -2,8 +2,10 @@ package com.mx.app.ui.screens
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -63,11 +65,11 @@ fun PermissionScreen(
             onGranted = { step = 2 }
         )
         2 -> NotificationPermissionStep(
-            onGranted = {
-                markPermissionsDone(context)
-                onAllGranted()
-            },
-            onSkip = {
+            onGranted = { step = 3 },
+            onSkip = { step = 3 }
+        )
+        3 -> MockLocationStep(
+            onContinue = {
                 markPermissionsDone(context)
                 onAllGranted()
             }
@@ -85,10 +87,10 @@ private fun LocationPermissionStep(onGranted: () -> Unit) {
 
     PermissionUI(
         step = 1,
-        of = 2,
+        of = 3,
         icon = "📍",
         title = "Location Access",
-        subtitle = "MX needs your location to mock GPS.\nThis is required for the app to work.",
+        subtitle = "MX needs your location to mock GPS",
         buttonText = "Allow Location",
         onClick = { launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
     )
@@ -99,8 +101,6 @@ private fun NotificationPermissionStep(
     onGranted: () -> Unit,
     onSkip: () -> Unit
 ) {
-    val context = LocalContext.current
-
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         val launcher = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -113,11 +113,28 @@ private fun NotificationPermissionStep(
             onSkip = onSkip
         )
     } else {
-        LaunchedEffect(Unit) {
-            markPermissionsDone(context)
-            onGranted()
-        }
+        LaunchedEffect(Unit) { onGranted() }
     }
+}
+
+@Composable
+private fun MockLocationStep(onContinue: () -> Unit) {
+    val context = LocalContext.current
+
+    PermissionUI(
+        step = 3,
+        of = 3,
+        icon = "⚙",
+        title = "Mock Location",
+        subtitle = "Select MX as mock location app in Developer Options",
+        buttonText = "Open Developer Options",
+        showContinue = true,
+        onClick = {
+            val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+            context.startActivity(intent)
+        },
+        onContinue = onContinue
+    )
 }
 
 @Composable
@@ -174,7 +191,7 @@ private fun NotificationUI(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Show mock location active status in notification bar.\nThis is optional.",
+            text = "Show mock location active status in notification bar",
             fontSize = 13.sp,
             color = Color(0xFF888888),
             textAlign = TextAlign.Center,
@@ -184,7 +201,7 @@ private fun NotificationUI(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Step 2 of 2",
+            text = "Step 2 of 3",
             fontSize = 11.sp,
             color = Color(0xFF444444),
             letterSpacing = 2.sp

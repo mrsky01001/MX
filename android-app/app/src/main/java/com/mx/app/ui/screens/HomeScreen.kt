@@ -21,6 +21,9 @@ import androidx.compose.ui.unit.sp
 import com.mx.app.ui.theme.*
 import com.mx.app.update.UpdateInfo
 import com.mx.app.update.UpdateBadge
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 @Composable
@@ -293,6 +296,7 @@ fun LocationInputDialog(
     onOpenMaps: (Double, Double, String) -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf(initialName) }
     var latText by remember { mutableStateOf(if (initialLat != 0.0) initialLat.toString() else "") }
     var lngText by remember { mutableStateOf(if (initialLng != 0.0) initialLng.toString() else "") }
@@ -323,21 +327,25 @@ fun LocationInputDialog(
     fun resolveFromName(onResult: (Double, Double) -> Unit) {
         isLoading = true
         errorMessage = ""
-        try {
-            val geocoder = Geocoder(context, Locale.getDefault())
-            @Suppress("DEPRECATION")
-            val results = geocoder.getFromLocationName(name, 1)
-            if (!results.isNullOrEmpty()) {
-                val result = results[0]
-                onResult(result.latitude, result.longitude)
-                isLoading = false
-            } else {
-                errorMessage = "Place not found. Try adding lat/lng."
+        scope.launch {
+            try {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                @Suppress("DEPRECATION")
+                val results = withContext(Dispatchers.IO) {
+                    geocoder.getFromLocationName(name, 1)
+                }
+                if (!results.isNullOrEmpty()) {
+                    val result = results[0]
+                    onResult(result.latitude, result.longitude)
+                    isLoading = false
+                } else {
+                    errorMessage = "Place not found. Try adding lat/lng."
+                    isLoading = false
+                }
+            } catch (e: Exception) {
+                errorMessage = "Could not find location."
                 isLoading = false
             }
-        } catch (e: Exception) {
-            errorMessage = "Could not find location."
-            isLoading = false
         }
     }
 

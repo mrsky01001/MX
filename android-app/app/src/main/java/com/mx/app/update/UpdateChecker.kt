@@ -49,24 +49,10 @@ class UpdateChecker(private val context: Context) {
         }
     }
 
-    private fun extractVersionFromTag(tag: String): Int {
+    private fun getMajorVersionFromTag(tag: String): Int {
         val cleaned = tag.trim().removePrefix("v").removePrefix("V")
         val parts = cleaned.split(".")
-        return when {
-            parts.size >= 3 -> {
-                val major = parts[0].toIntOrNull() ?: 0
-                val minor = parts[1].toIntOrNull() ?: 0
-                val patch = parts[2].toIntOrNull() ?: 0
-                major * 10000 + minor * 100 + patch
-            }
-            parts.size == 2 -> {
-                val major = parts[0].toIntOrNull() ?: 0
-                val minor = parts[1].toIntOrNull() ?: 0
-                major * 100 + minor
-            }
-            parts.size == 1 -> parts[0].toIntOrNull() ?: 1
-            else -> 1
-        }
+        return parts[0].toIntOrNull() ?: 1
     }
 
     suspend fun checkForUpdate(): UpdateInfo? = withContext(Dispatchers.IO) {
@@ -83,15 +69,15 @@ class UpdateChecker(private val context: Context) {
             if (response.isSuccessful) {
                 val release = gson.fromJson(body, GitHubRelease::class.java) ?: return@withContext null
 
-                val remoteVersionCode = extractVersionFromTag(release.tagName)
+                val remoteMajorVersion = getMajorVersionFromTag(release.tagName)
                 val currentVersionCode = getCurrentVersionCode()
 
                 val apkAsset = release.assets.find { it.name == APK_FILE_NAME }
 
-                if (remoteVersionCode > currentVersionCode && apkAsset != null) {
+                if (remoteMajorVersion > currentVersionCode && apkAsset != null) {
                     UpdateInfo(
                         versionName = release.tagName,
-                        versionCode = remoteVersionCode,
+                        versionCode = remoteMajorVersion,
                         downloadUrl = apkAsset.downloadUrl,
                         currentVersionCode = currentVersionCode
                     )
