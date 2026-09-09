@@ -135,7 +135,7 @@ fun UpdateProgressDialog(
     )
 
     AlertDialog(
-        onDismissRequest = if (isComplete) onDismiss else { },
+        onDismissRequest = if (isComplete) onDismiss else { /* no-op */ },
         containerColor = Color(0xFF1A1A1A),
         titleContentColor = Color.White,
         textContentColor = Color.White,

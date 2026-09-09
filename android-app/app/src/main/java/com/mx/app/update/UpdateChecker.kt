@@ -53,9 +53,18 @@ class UpdateChecker(private val context: Context) {
         val cleaned = tag.trim().removePrefix("v").removePrefix("V")
         val parts = cleaned.split(".")
         return when {
-            parts.size >= 3 -> parts[0].toIntOrNull() * 10000 + parts[1].toIntOrNull() * 100 + parts[2].toIntOrNull()
-            parts.size == 2 -> parts[0].toIntOrNull() * 100 + parts[1].toIntOrNull()
-            parts.size == 1 -> parts[0].toIntOrNull()
+            parts.size >= 3 -> {
+                val major = parts[0].toIntOrNull() ?: 0
+                val minor = parts[1].toIntOrNull() ?: 0
+                val patch = parts[2].toIntOrNull() ?: 0
+                major * 10000 + minor * 100 + patch
+            }
+            parts.size == 2 -> {
+                val major = parts[0].toIntOrNull() ?: 0
+                val minor = parts[1].toIntOrNull() ?: 0
+                major * 100 + minor
+            }
+            parts.size == 1 -> parts[0].toIntOrNull() ?: 1
             else -> 1
         }
     }
