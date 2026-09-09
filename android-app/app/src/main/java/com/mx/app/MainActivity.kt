@@ -11,6 +11,7 @@ import com.mx.app.service.MockLocationService
 import com.mx.app.ui.screens.HomeScreen
 import com.mx.app.ui.screens.PermissionScreen
 import com.mx.app.ui.screens.isPermissionsDone
+import com.mx.app.ui.screens.isMockSetupDone
 import com.mx.app.ui.theme.MXTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -25,7 +26,7 @@ class MainActivity : ComponentActivity() {
                 val context = this@MainActivity
 
                 var showPermissions by remember {
-                    mutableStateOf(!isPermissionsDone(context))
+                    mutableStateOf(!isPermissionsDone(context) || !isMockSetupDone(context))
                 }
                 var locationName by remember { mutableStateOf("") }
                 var locationLat by remember { mutableDoubleStateOf(0.0) }

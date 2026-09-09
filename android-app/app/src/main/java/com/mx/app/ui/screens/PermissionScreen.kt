@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 
 private const val PREFS_NAME = "mx_prefs"
 private const val KEY_PERMISSIONS_DONE = "permissions_done"
+private const val KEY_MOCK_SETUP_DONE = "mock_setup_done"
 
 fun isPermissionsDone(context: Context): Boolean {
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -37,6 +38,16 @@ fun isPermissionsDone(context: Context): Boolean {
 fun markPermissionsDone(context: Context) {
     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     prefs.edit().putBoolean(KEY_PERMISSIONS_DONE, true).apply()
+}
+
+fun isMockSetupDone(context: Context): Boolean {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    return prefs.getBoolean(KEY_MOCK_SETUP_DONE, false)
+}
+
+fun markMockSetupDone(context: Context) {
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    prefs.edit().putBoolean(KEY_MOCK_SETUP_DONE, true).apply()
 }
 
 @Composable
@@ -65,12 +76,18 @@ fun PermissionScreen(
             onGranted = { step = 2 }
         )
         2 -> NotificationPermissionStep(
-            onGranted = { step = 3 },
-            onSkip = { step = 3 }
+            onGranted = {
+                markPermissionsDone(context)
+                step = 3
+            },
+            onSkip = {
+                markPermissionsDone(context)
+                step = 3
+            }
         )
         3 -> MockLocationStep(
             onContinue = {
-                markPermissionsDone(context)
+                markMockSetupDone(context)
                 onAllGranted()
             }
         )
@@ -121,19 +138,30 @@ private fun NotificationPermissionStep(
 private fun MockLocationStep(onContinue: () -> Unit) {
     val context = LocalContext.current
 
+    val isDevOptionsEnabled = remember {
+        Settings.Secure.getInt(
+            context.contentResolver,
+            Settings.Secure.DEVELOPMENT_SETTINGS_ENABLED, 0
+        ) != 0
+    }
+
     PermissionUI(
         step = 3,
         of = 3,
         icon = "⚙",
         title = "Mock Location",
         subtitle = "Select MX as mock location app in Developer Options",
-        buttonText = "Open Developer Options",
-        showContinue = true,
-        onClick = {
-            val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
-            context.startActivity(intent)
-        },
-        onContinue = onContinue
+        showContinueOnly = true,
+        onContinue = {
+            if (isDevOptionsEnabled) {
+                val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+                context.startActivity(intent)
+            } else {
+                val intent = Intent(Settings.ACTION_SETTINGS)
+                context.startActivity(intent)
+            }
+            onContinue()
+        }
     )
 }
 
@@ -250,9 +278,10 @@ private fun PermissionUI(
     icon: String,
     title: String,
     subtitle: String,
-    buttonText: String,
+    buttonText: String = "",
     showContinue: Boolean = false,
-    onClick: () -> Unit,
+    showContinueOnly: Boolean = false,
+    onClick: (() -> Unit)? = null,
     onContinue: (() -> Unit)? = null
 ) {
     Column(
@@ -322,32 +351,36 @@ private fun PermissionUI(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = onClick,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1DB954),
-                contentColor = Color.Black
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Text(
-                text = buttonText,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+        if (!showContinueOnly && onClick != null) {
+            Button(
+                onClick = onClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1DB954),
+                    contentColor = Color.Black
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text(
+                    text = buttonText,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         if (showContinue) {
             Spacer(modifier = Modifier.height(12.dp))
+        }
 
+        if (showContinueOnly || showContinue) {
             Button(
                 onClick = { onContinue?.invoke() },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF222222),
-                    contentColor = Color.White
+                    containerColor = if (showContinueOnly) Color(0xFF1DB954) else Color(0xFF222222),
+                    contentColor = if (showContinueOnly) Color.Black else Color.White
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
