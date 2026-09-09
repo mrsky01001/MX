@@ -25,7 +25,6 @@ class MockLocationService : Service() {
         const val STOPPED_NOTIFICATION_ID = 1002
         const val ACTION_START = "com.mx.app.action.START_MOCK"
         const val ACTION_STOP = "com.mx.app.action.STOP_MOCK"
-        const val ACTION_TIMER_STOP = "com.mx.app.action.TIMER_STOP"
         private const val TICK_INTERVAL_MS = 200L
     }
 
@@ -52,18 +51,9 @@ class MockLocationService : Service() {
                 mockLat = intent.getDoubleExtra("latitude", 0.0)
                 mockLng = intent.getDoubleExtra("longitude", 0.0)
                 mockName = intent.getStringExtra("name") ?: ""
-                val timerMinutes = intent.getIntExtra("timer_minutes", 0)
 
-                if (mockLat != 0.0 && mockLng != 0.0) {
+                if (mockLat != 0.0 || mockLng != 0.0) {
                     startMocking()
-                    if (timerMinutes > 0) {
-                        scope.launch {
-                            delay(timerMinutes * 60_000L)
-                            stopMocking()
-                            showStoppedNotification()
-                            stopSelf()
-                        }
-                    }
                 }
             }
             ACTION_STOP -> {
@@ -231,9 +221,12 @@ class MockLocationService : Service() {
         nm.notify(NOTIFICATION_ID, buildActiveNotification())
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        stopMocking()
         scope.cancel()
     }
 }

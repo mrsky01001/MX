@@ -1,8 +1,8 @@
 package com.mx.app.ui.screens
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,17 +23,43 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 
 @Composable
 fun PermissionScreen(
     onAllGranted: () -> Unit
 ) {
     val context = LocalContext.current
-    var step by remember { mutableIntStateOf(1) }
+
+    val locationGranted = remember {
+        ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    val notificationGranted = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else true
+    }
+
+    var step by remember {
+        mutableIntStateOf(
+            when {
+                !locationGranted -> 1
+                !notificationGranted -> 2
+                else -> 3
+            }
+        )
+    }
 
     when (step) {
         1 -> LocationPermissionStep(
-            onGranted = { step = 2 }
+            onGranted = {
+                if (notificationGranted) step = 3 else step = 2
+            }
         )
         2 -> NotificationPermissionStep(
             onGranted = { step = 3 }

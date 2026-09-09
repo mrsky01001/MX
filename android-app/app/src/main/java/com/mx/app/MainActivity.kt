@@ -25,7 +25,6 @@ class MainActivity : ComponentActivity() {
                 var locationName by remember { mutableStateOf("") }
                 var locationLat by remember { mutableDoubleStateOf(0.0) }
                 var locationLng by remember { mutableDoubleStateOf(0.0) }
-                var timerMinutes by remember { mutableIntStateOf(15) }
                 var isRunning by remember { mutableStateOf(false) }
                 var showStoppedDialog by remember { mutableStateOf(false) }
 
@@ -46,7 +45,6 @@ class MainActivity : ComponentActivity() {
                         locationName = locationName,
                         locationLat = locationLat,
                         locationLng = locationLng,
-                        timerMinutes = timerMinutes,
                         isRunning = isRunning,
                         showStoppedDialog = showStoppedDialog,
                         onStoppedDialogDismiss = { showStoppedDialog = false },
@@ -55,9 +53,8 @@ class MainActivity : ComponentActivity() {
                             locationLat = lat
                             locationLng = lng
                         },
-                        onTimerChanged = { timerMinutes = it },
                         onStart = {
-                            startMockService(locationName, locationLat, locationLng, timerMinutes)
+                            startMockService(locationName, locationLat, locationLng)
                             isRunning = true
                         },
                         onStop = {
@@ -75,13 +72,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startMockService(name: String, lat: Double, lng: Double, timerMinutes: Int) {
+    private fun startMockService(name: String, lat: Double, lng: Double) {
         val intent = Intent(this, MockLocationService::class.java).apply {
             action = MockLocationService.ACTION_START
             putExtra("name", name)
             putExtra("latitude", lat)
             putExtra("longitude", lng)
-            putExtra("timer_minutes", timerMinutes)
         }
         ContextCompat.startForegroundService(this, intent)
     }

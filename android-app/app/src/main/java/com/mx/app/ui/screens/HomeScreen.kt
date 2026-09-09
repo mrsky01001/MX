@@ -1,5 +1,6 @@
 package com.mx.app.ui.screens
 
+import android.location.Geocoder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,23 +13,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mx.app.ui.theme.*
+import java.util.Locale
 
 @Composable
 fun HomeScreen(
     locationName: String,
     locationLat: Double,
     locationLng: Double,
-    timerMinutes: Int,
     isRunning: Boolean,
     showStoppedDialog: Boolean = false,
     onStoppedDialogDismiss: () -> Unit = {},
     onLocationSelected: (String, Double, Double) -> Unit,
-    onTimerChanged: (Int) -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
     onOpenMaps: (Double, Double, String) -> Unit
@@ -36,7 +37,6 @@ fun HomeScreen(
     var showLocationDialog by remember { mutableStateOf(false) }
     var showStoppedDialogState by remember { mutableStateOf(showStoppedDialog) }
 
-    // Sync external state
     LaunchedEffect(showStoppedDialog) {
         showStoppedDialogState = showStoppedDialog
     }
@@ -46,7 +46,6 @@ fun HomeScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -76,7 +75,6 @@ fun HomeScreen(
             }
         }
 
-        // Map Area
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -85,7 +83,6 @@ fun HomeScreen(
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color(0xFF0A1628))
         ) {
-            // Grid pattern
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -93,7 +90,6 @@ fun HomeScreen(
             )
 
             if (locationLat != 0.0 && locationLng != 0.0) {
-                // Selected location info
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -135,7 +131,6 @@ fun HomeScreen(
                     )
                 }
             } else {
-                // Pin icon
                 Text(
                     text = "📍",
                     fontSize = 56.sp,
@@ -143,7 +138,6 @@ fun HomeScreen(
                 )
             }
 
-            // Select location button
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -165,55 +159,13 @@ fun HomeScreen(
             }
         }
 
-        // Bottom Controls
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Timer
-            Text(
-                text = "Auto-stop after",
-                fontSize = 12.sp,
-                color = Color(0xFF888888),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                val timers = listOf(5 to "5m", 15 to "15m", 30 to "30m", 60 to "1h", 480 to "8h", 0 to "∞")
-                timers.forEach { (minutes, label) ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .border(
-                                width = 2.dp,
-                                color = if (timerMinutes == minutes) Color(0xFF1DB954) else Color(0xFF222222),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .background(
-                                if (timerMinutes == minutes) Color(0x1A1DB954) else Color.Transparent
-                            )
-                            .clickable { onTimerChanged(minutes) }
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (timerMinutes == minutes) Color(0xFF1DB954) else Color(0xFF888888)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Start/Stop Button
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -243,7 +195,6 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Footer
             Text(
                 text = "MX will send fake location instead of real GPS",
                 fontSize = 11.sp,
@@ -254,7 +205,6 @@ fun HomeScreen(
         }
     }
 
-    // Location Input Dialog
     if (showLocationDialog) {
         LocationInputDialog(
             initialName = locationName,
@@ -269,7 +219,6 @@ fun HomeScreen(
         )
     }
 
-    // Mock Stopped Dialog
     if (showStoppedDialogState) {
         AlertDialog(
             onDismissRequest = {
@@ -330,18 +279,24 @@ fun LocationInputDialog(
     onDismiss: () -> Unit,
     onOpenMaps: (Double, Double, String) -> Unit
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf(initialName) }
     var latText by remember { mutableStateOf(if (initialLat != 0.0) initialLat.toString() else "") }
     var lngText by remember { mutableStateOf(if (initialLng != 0.0) initialLng.toString() else "") }
-    var linkText by remember { mutableStateOf("") }
-    var parsedLat by remember { mutableDoubleStateOf(0.0) }
-    var parsedLng by remember { mutableDoubleStateOf(0.0) }
+    var parsedLat by remember { mutableDoubleStateOf(if (initialLat != 0.0) initialLat else 0.0) }
+    var parsedLng by remember { mutableDoubleStateOf(if (initialLng != 0.0) initialLng else 0.0) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
-    fun isValidCoordinates(): Boolean {
+    fun hasValidCoords(): Boolean {
         val lat = latText.toDoubleOrNull()
         val lng = lngText.toDoubleOrNull()
         return lat != null && lng != null && lat in -90.0..90.0 && lng in -180.0..180.0
     }
+
+    fun hasName(): Boolean = name.isNotBlank()
+
+    fun canConfirm(): Boolean = hasValidCoords() || hasName()
 
     fun updatePreview() {
         val lat = latText.toDoubleOrNull()
@@ -352,30 +307,25 @@ fun LocationInputDialog(
         }
     }
 
-    fun parseGoogleMapsLink(link: String): Boolean {
-        val patterns = listOf(
-            Regex("""@(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
-            Regex("""q=(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
-            Regex("""\?q=(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
-            Regex("""/place/[^@]*@(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
-            Regex("""maps\?.*?ll=(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
-            Regex("""center=(-?\d+\.?\d*),(-?\d+\.?\d*)"""),
-            Regex("""(-?\d+\.\d+),\s*(-?\d+\.\d+)""")
-        )
-        for (pattern in patterns) {
-            val match = pattern.find(link)
-            if (match != null) {
-                val lat = match.groupValues[1]
-                val lng = match.groupValues[2]
-                if (lat.toDoubleOrNull() != null && lng.toDoubleOrNull() != null) {
-                    latText = lat
-                    lngText = lng
-                    updatePreview()
-                    return true
-                }
+    fun resolveFromName(onResult: (Double, Double) -> Unit) {
+        isLoading = true
+        errorMessage = ""
+        try {
+            val geocoder = Geocoder(context, Locale.getDefault())
+            @Suppress("DEPRECATION")
+            val results = geocoder.getFromLocationName(name, 1)
+            if (!results.isNullOrEmpty()) {
+                val result = results[0]
+                onResult(result.latitude, result.longitude)
+                isLoading = false
+            } else {
+                errorMessage = "Place not found. Try adding lat/lng."
+                isLoading = false
             }
+        } catch (e: Exception) {
+            errorMessage = "Could not find location."
+            isLoading = false
         }
-        return false
     }
 
     AlertDialog(
@@ -389,47 +339,11 @@ fun LocationInputDialog(
         text = {
             Column {
                 Text(
-                    text = "Enter location or paste Google Maps link",
+                    text = "Enter place name or coordinates",
                     fontSize = 13.sp,
                     color = Color(0xFF888888),
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-
-                OutlinedTextField(
-                    value = linkText,
-                    onValueChange = { link ->
-                        linkText = link
-                        if (link.isNotBlank()) {
-                            parseGoogleMapsLink(link)
-                        }
-                    },
-                    label = { Text("Paste Google Maps link") },
-                    placeholder = { Text("https://maps.google.com/...") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF1DB954),
-                        unfocusedBorderColor = Color(0xFF333333),
-                        focusedLabelColor = Color(0xFF1DB954),
-                        unfocusedLabelColor = Color(0xFF888888),
-                        cursorColor = Color(0xFF1DB954)
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "— OR enter manually —",
-                    fontSize = 11.sp,
-                    color = Color(0xFF444444),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = name,
@@ -448,6 +362,16 @@ fun LocationInputDialog(
                     ),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "— OR enter coordinates —",
+                    fontSize = 11.sp,
+                    color = Color(0xFF444444),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -501,7 +425,17 @@ fun LocationInputDialog(
                     )
                 }
 
-                if (isValidCoordinates()) {
+                if (errorMessage.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = errorMessage,
+                        fontSize = 12.sp,
+                        color = Color(0xFFFF6B6B),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                if (hasValidCoords()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Box(
                         modifier = Modifier
@@ -540,20 +474,34 @@ fun LocationInputDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    updatePreview()
-                    onConfirm(name, parsedLat, parsedLng)
+                    if (hasValidCoords()) {
+                        updatePreview()
+                        onConfirm(name, parsedLat, parsedLng)
+                    } else if (hasName()) {
+                        resolveFromName { lat, lng ->
+                            onConfirm(name, lat, lng)
+                        }
+                    }
                 },
-                enabled = isValidCoordinates(),
+                enabled = canConfirm() && !isLoading,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isValidCoordinates()) Color(0xFF1DB954) else Color(0xFF222222),
-                    contentColor = if (isValidCoordinates()) Color.Black else Color(0xFF555555)
+                    containerColor = if (canConfirm()) Color(0xFF1DB954) else Color(0xFF222222),
+                    contentColor = if (canConfirm()) Color.Black else Color(0xFF555555)
                 ),
                 modifier = Modifier
                     .defaultMinSize(minWidth = 120.dp)
                     .height(48.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(text = "Confirm", fontWeight = FontWeight.Bold)
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = Color.Black,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(text = "Confirm", fontWeight = FontWeight.Bold)
+                }
             }
         },
         dismissButton = {
