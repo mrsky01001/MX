@@ -1,4 +1,4 @@
-name: Build APK
+name: Build & Auto Release
 
 on:
   push:
@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: android-app
@@ -32,8 +34,27 @@ jobs:
     - name: Build Debug APK
       run: gradle assembleDebug
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
+    - name: Get Version
+      id: version
+      run: |
+        VERSION=$(grep "versionName" app/build.gradle.kts | head -1 | sed 's/.*"\(.*\)".*/\1/')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Delete Old Release If Exists
+      continue-on-error: true
+      run: |
+        gh release delete "v${{ steps.version.outputs.version }}" --yes || true
+        git tag -d "v${{ steps.version.outputs.version }}" || true
+        git push --delete origin "v${{ steps.version.outputs.version }}" || true
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
       with:
-        name: mx-apk
-        path: android-app/app/build/outputs/apk/debug/app-debug.apk
+        tag_name: v${{ steps.version.outputs.version }}
+        name: MX v${{ steps.version.outputs.version }}
+        files: android-app/app/build/outputs/apk/debug/app-debug.apk
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -185,7 +185,7 @@ class MockLocationService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val stopAction = NotificationCompat.Action.Builder(
-            R.mipmap.ic_launcher_foreground, "Stop", stopPending
+            R.drawable.ic_logo, "Stop", stopPending
         ).build()
 
         val title = if (mockName.isNotBlank()) "MX: $mockName" else "MX Mock Active"
@@ -194,7 +194,7 @@ class MockLocationService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(text)
-            .setSmallIcon(R.mipmap.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_logo)
             .setContentIntent(openPending)
             .setOngoing(true)
             .setSilent(true)
@@ -215,7 +215,7 @@ class MockLocationService : Service() {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("MX Mock Stopped")
             .setContentText("Your fake location has been stopped.")
-            .setSmallIcon(R.mipmap.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_logo)
             .setContentIntent(openPending)
             .setAutoCancel(true)
             .setSilent(true)

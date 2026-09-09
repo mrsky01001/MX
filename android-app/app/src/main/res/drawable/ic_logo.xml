@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+    <!-- Left half pin -->
+    <path d="M245,460 L130,260 C130,155 245,145 245,145 Z" fill="#000000"/>
+    <!-- Right half pin - shifted up -->
+    <path d="M267,450 L267,165 C267,155 382,155 382,260 Z" fill="#000"/>
+    <!-- Split line -->
+    <line x1="256" y1="145" x2="256" y2="460" stroke="#fff" stroke-width="12"/>
+    <!-- Swap arrows -->
+    <path d="M210,260 L170,260 L170,210" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M302,260 L342,260 L342,310" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

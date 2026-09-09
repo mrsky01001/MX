@@ -4,13 +4,28 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Left half pin -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M34,44 L34,64 L44,64 L44,44 Z"/>
+        android:pathData="M44,82 L26,50 C26,35 44,33 44,33 Z"/>
+    <!-- Right half pin - shifted up -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M48,44 L48,64 L58,64 L58,44 Z"/>
+        android:pathData="M48,81 L48,36 C48,35 66,35 66,50 Z"/>
+    <!-- Split line -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M62,44 L62,64 L72,64 L72,44 Z"/>
+        android:fillColor="#000000"
+        android:pathData="M45,33 L51,33 L51,82 L45,82 Z"/>
+    <!-- Swap arrow left -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M39,50 L33,50 L33,42"
+        android:strokeWidth="2"
+        android:strokeColor="#000000"/>
+    <!-- Swap arrow right -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M61,50 L67,50 L67,58"
+        android:strokeWidth="2"
+        android:strokeColor="#000000"/>
 </vector>
