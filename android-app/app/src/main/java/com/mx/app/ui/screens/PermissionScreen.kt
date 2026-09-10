@@ -25,6 +25,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 private const val PREFS_NAME = "mx_prefs"
 private const val KEY_PERMISSIONS_DONE = "permissions_done"
@@ -137,12 +140,25 @@ private fun NotificationPermissionStep(
 @Composable
 private fun MockLocationStep(onContinue: () -> Unit) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var settingsOpened by remember { mutableStateOf(false) }
 
     val isDevOptionsEnabled = remember {
         Settings.Secure.getInt(
             context.contentResolver,
             Settings.Secure.DEVELOPMENT_SETTINGS_ENABLED, 0
         ) != 0
+    }
+
+    DisposableEffect(Unit) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && settingsOpened) {
+                settingsOpened = false
+                onContinue()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     PermissionUI(
@@ -160,7 +176,7 @@ private fun MockLocationStep(onContinue: () -> Unit) {
                 val intent = Intent(Settings.ACTION_SETTINGS)
                 context.startActivity(intent)
             }
-            onContinue()
+            settingsOpened = true
         }
     )
 }
